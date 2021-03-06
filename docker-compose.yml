@@ -1,0 +1,52 @@
+version: '3'
+services:
+  es:
+    build:
+      context: .
+      dockerfile: Dockerfile.elasticsearch
+    container_name: es_sample
+    environment:
+      - cluster.name=rails-sample-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_sample_data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+  db:
+    image: mysql
+    container_name: es_db
+    environment:
+      - MYSQL_ROOT_PASSWORD=sample
+      - MYSQL_PASSWORD=sample
+      - MYSQL_USER=sample
+    ports:
+      - "3306:3306"
+  rails:
+    build:
+      context: .
+      dockerfile: Dockerfile.rails
+    container_name: es_rails
+    # 必要であればshなどに bundle install や rails s を実行してrailsを起動する処理を書く
+    command: sh -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    volumes:
+      - .:/app
+      - vendor_bundle:/user/local/bundle
+    ports:
+      - "3000:3000"
+    environment:
+      - RAILS_DATABASE_USERNAME=root
+      - RAILS_DATABASE_PASSWORD=sample
+      - RAILS_DATABASE_NAME=sample
+      - RAILS_DATABASE_HOST=db
+    tty: true
+    stdin_open: true
+volumes:
+  es_sample_data:
+    driver: local
+  vendor_bundle:
+    driver: local
